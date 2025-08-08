@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import {
   Frame,
   Map,
@@ -7,8 +7,8 @@ import {
   Send,
   MessageCircle,
   Settings2,
-} from "lucide-react"
-import { NavProjects } from "~/components/nav-projects"
+} from "lucide-react";
+import { NavProjects } from "~/components/nav-projects";
 import {
   Sidebar,
   SidebarContent,
@@ -18,9 +18,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "~/components/ui/sidebar"
-import { Link } from "react-router"
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+} from "~/components/ui/sidebar";
+import { Link } from "react-router";
+import type { Route } from "../routes/chat/+types/layout";
 
 // This is sample data.
 const data = {
@@ -53,9 +53,16 @@ const data = {
       icon: Send,
     },
   ],
-}
+};
 
-export function AppSidebar({ sessonClaims, ...props }: React.ComponentProps<typeof Sidebar> & { sessonClaims: { fullName: string, imageUrl: string, email: string } }) {
+export async function loader(args: Route.LoaderArgs) {}
+
+export function AppSidebar({
+  sessonClaims,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  sessonClaims: { fullName: string; imageUrl: string; email: string };
+}) {
   return (
     <Sidebar collapsible="icon" {...props} className="">
       <SidebarHeader>
@@ -93,5 +100,5 @@ export function AppSidebar({ sessonClaims, ...props }: React.ComponentProps<type
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
