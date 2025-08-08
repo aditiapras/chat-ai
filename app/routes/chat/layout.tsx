@@ -21,7 +21,10 @@ export async function loader(args: Route.LoaderArgs) {
   return {
     userId,
     sessionClaims: {
-      firstName: sessionClaims.firstName,
+      fullName: sessionClaims.fullName as string,
+      imageUrl: sessionClaims.imageUrl as string,
+      firstName: sessionClaims.firstName as string,
+      email: sessionClaims.email as string,
     },
   };
 }
@@ -29,9 +32,9 @@ export async function loader(args: Route.LoaderArgs) {
 export default function Layout({ loaderData }: Route.ComponentProps) {
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="border border-neutral-200 peer-data-[variant=inset]:-m-2 peer-data-[variant=inset]:border-none peer-data-[variant=inset]:shadow-none">
-        <header className="flex h-16 shrink-0 items-center gap-2 justify-between">
+      <AppSidebar sessonClaims={loaderData.sessionClaims} />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center bg-gradient-to-t from-transparent via-background to-background gap-2 justify-between sticky top-0 z-10">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
           </div>
