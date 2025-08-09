@@ -132,7 +132,10 @@ export default function Chat({ loaderData }: Route.ComponentProps) {
     if (prompt.trim() && !isCreatingThread) {
       const currentPrompt = prompt;
       const currentModel = model;
-      setPrompt(""); // Clear input immediately for better UX
+      // Clear input immediately for better UX
+      setPrompt("");
+      // Use a small delay to ensure state update takes effect before navigation
+      await new Promise((resolve) => setTimeout(resolve, 0));
       await createThread(currentPrompt, currentModel);
     }
   };

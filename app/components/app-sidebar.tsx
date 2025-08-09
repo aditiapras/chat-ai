@@ -20,42 +20,6 @@ import {
   SidebarRail,
 } from "~/components/ui/sidebar";
 import { Link } from "react-router";
-import type { Route } from "../routes/chat/+types/layout";
-
-// This is sample data.
-const data = {
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-};
-
-export async function loader(args: Route.LoaderArgs) {}
 
 export function AppSidebar({
   sessonClaims,
@@ -82,7 +46,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavProjects projects={data.projects} />
+        <NavProjects />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

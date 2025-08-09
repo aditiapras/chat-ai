@@ -28,13 +28,12 @@ export async function action(args: Route.ActionArgs) {
       data: {
         userId: userId as string,
         model: model as string,
-        title: prompt as string,
+        title: "New Chat", // Temporary title, will be updated after initial messages
       },
     });
 
     console.log("✅ Thread created successfully:", {
       threadId: thread.id,
-      title: thread.title.substring(0, 50) + "...",
     });
 
     return Response.json({

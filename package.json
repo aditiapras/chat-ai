@@ -35,7 +35,10 @@
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "react-router": "^7.7.1",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.1",
     "tsx": "^4.20.3"
   },

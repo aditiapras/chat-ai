@@ -1,6 +1,6 @@
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
-import { Globe, Paperclip, Send } from "lucide-react";
+import { Globe, Paperclip, Send, Square } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -20,11 +20,12 @@ import { Loader2 } from "lucide-react";
 import { prisma } from "~/lib/prisma";
 import { getAuth } from "@clerk/react-router/ssr.server";
 import { useLocation } from "react-router";
+import { MarkdownRenderer } from "~/components/MarkdownRenderer";
 
 export const meta: Route.MetaFunction = ({ data }) => {
   return [
     {
-      title: "Chat",
+      title: data?.thread?.title,
       description: "Chat with AI",
     },
   ];
@@ -110,6 +111,8 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
     setInput,
     append,
     status,
+    stop,
+    setMessages,
   } = useChat({
     api: "/api/chat",
     headers: {
@@ -147,6 +150,9 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
         role: "user",
         content: navigationState.prompt,
       });
+
+      // Clear the input after submission
+      setInput("");
     }
   }, [loaderData.isInitial, location.state, append, setInput]);
 
@@ -179,9 +185,16 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
             className={`flex flex-col items-center gap-2 w-full`}
           >
             <div
-              className={`${message.role === "user" ? "justify-end p-2 w-fit ml-auto rounded-xl rounded-br-none bg-accent" : "justify-start w-full"} flex`}
+              className={`${message.role === "user" ? "justify-end p-2 max-w-[70%] w-fit ml-auto rounded-xl rounded-br-none bg-accent" : "justify-start w-full"} flex`}
             >
-              {message.content}
+              {message.role === "assistant" ? (
+                <MarkdownRenderer
+                  content={message.content}
+                  className="w-full prose prose-sm dark:prose-invert max-w-none"
+                />
+              ) : (
+                message.content
+              )}
             </div>
           </div>
         ))}
@@ -252,8 +265,58 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
                 </TooltipContent>
               </Tooltip>
             </div>
-            <Button type="submit" size="icon">
-              <Send />
+            <Button
+              type={
+                status === "submitted" || status === "streaming"
+                  ? "button"
+                  : "submit"
+              }
+              size="icon"
+              onClick={() => {
+                if (status === "submitted" || status === "streaming") {
+                  // Stop the streaming
+                  stop();
+
+                  // Find the last assistant message and append "(Stopped by User)"
+                  const lastMessageIndex = messages.length - 1;
+                  const lastMessage = messages[lastMessageIndex];
+
+                  if (lastMessage && lastMessage.role === "assistant") {
+                    // Update the message in the UI immediately
+                    const updatedMessages = [...messages];
+                    updatedMessages[lastMessageIndex] = {
+                      ...lastMessage,
+                      content: lastMessage.content + "\n\n(Stopped by User)",
+                    };
+
+                    // Update the messages state
+                    setMessages(updatedMessages);
+
+                    // Save the partial data to the database
+                    fetch("/api/chat", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        threadId: loaderData.thread.id,
+                        partialContent:
+                          lastMessage.content + "\n\n(Stopped by User)",
+                        model: model,
+                        isPartial: true,
+                      }),
+                    }).catch((error) => {
+                      console.error("Error saving partial data:", error);
+                    });
+                  }
+                }
+              }}
+            >
+              {status === "submitted" || status === "streaming" ? (
+                <Square />
+              ) : (
+                <Send />
+              )}
             </Button>
           </div>
         </form>
