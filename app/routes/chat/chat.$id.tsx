@@ -45,26 +45,30 @@ export async function loader(args: Route.LoaderArgs) {
       select: {
         name: true,
         code: true,
+        hasReasoning: true,
       },
       where: {
         isActive: true, // Only fetch active models
       },
     }),
-    prisma.thread.findUnique({
+    prisma.thread.findFirst({
       where: {
         id: params.id,
+        userId: userId, // ✅ CRITICAL: Enforce thread ownership
       },
       include: {
         Message: {
           orderBy: {
             createdAt: "asc",
           },
+          take: 50, // ✅ PERFORMANCE: Limit initial message load
           select: {
             id: true,
             content: true,
             role: true,
             model: true,
             createdAt: true,
+            attachments: true,
           },
         },
       },
@@ -72,7 +76,7 @@ export async function loader(args: Route.LoaderArgs) {
   ]);
 
   if (!thread) {
-    throw new Response("Thread not found", { status: 404 });
+    throw new Response("Thread not found or access denied", { status: 404 });
   }
 
   const isInitial = thread.Message.length === 0;
@@ -91,15 +95,46 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
     loaderData.lastModel || "openai/gpt-oss-120b"
   );
 
-  // Convert database messages to useChat format (memoized for performance)
+  // Check if current model supports reasoning
+  const currentModelInfo = loaderData.model.find((m) => m.code === model);
+  const supportsReasoning = currentModelInfo?.hasReasoning || false;
+
+  // Convert database messages to useChat format with reasoning support (memoized for performance)
   const initialMessages = useMemo(
     () =>
-      loaderData.thread?.Message.map((message) => ({
-        id: message.id,
-        role: message.role as "user" | "assistant",
-        content: message.content,
-        createdAt: message.createdAt,
-      })) || [],
+      loaderData.thread?.Message.map((message) => {
+        const baseMessage: any = {
+          id: message.id,
+          role: message.role as "user" | "assistant",
+          content: message.content,
+          createdAt: message.createdAt,
+        };
+
+        // Extract reasoning from attachments if available
+        if (message.attachments && message.attachments.length > 0) {
+          try {
+            const reasoningAttachment = message.attachments.find(
+              (attachment: string) => {
+                try {
+                  const parsed = JSON.parse(attachment);
+                  return parsed.type === "reasoning";
+                } catch {
+                  return false;
+                }
+              }
+            );
+
+            if (reasoningAttachment) {
+              const parsed = JSON.parse(reasoningAttachment);
+              baseMessage.reasoning = parsed.content;
+            }
+          } catch (error) {
+            console.warn("Failed to parse reasoning from attachments:", error);
+          }
+        }
+
+        return baseMessage;
+      }) || [],
     [loaderData.thread?.Message]
   );
 
@@ -122,6 +157,7 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
       model,
       threadId: loaderData.thread?.id,
     },
+
     initialMessages: initialMessages,
   });
 
@@ -156,13 +192,13 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
     }
   }, [loaderData.isInitial, location.state, append, setInput]);
 
-  // Update model state when it changes (optimized to avoid unnecessary re-renders)
+  // Update model state when it changes (fixed infinite re-render)
   useEffect(() => {
     const newModel = loaderData.lastModel || "openai/gpt-oss-120b";
     if (model !== newModel) {
       setModel(newModel);
     }
-  }, [loaderData.lastModel, model]);
+  }, [loaderData.lastModel]); // ✅ CRITICAL FIX: Removed 'model' from dependencies
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
@@ -188,10 +224,23 @@ export default function ChatId({ loaderData }: Route.ComponentProps) {
               className={`${message.role === "user" ? "justify-end p-2 max-w-[70%] w-fit ml-auto rounded-xl rounded-br-none bg-accent" : "justify-start w-full"} flex`}
             >
               {message.role === "assistant" ? (
-                <MarkdownRenderer
-                  content={message.content}
-                  className="w-full prose prose-sm dark:prose-invert max-w-none"
-                />
+                <div className="w-full space-y-3">
+                  {/* Show reasoning if available */}
+                  {(message as any).reasoning && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        🧠 Reasoning
+                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">
+                        {(message as any).reasoning}
+                      </div>
+                    </div>
+                  )}
+                  <MarkdownRenderer
+                    content={message.content}
+                    className="w-full prose prose-sm dark:prose-invert max-w-none"
+                  />
+                </div>
               ) : (
                 message.content
               )}

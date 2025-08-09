@@ -35,6 +35,7 @@ export async function loader(args: Route.LoaderArgs) {
     select: {
       name: true,
       code: true,
+      hasReasoning: true,
     },
   });
   return { sessionClaims, model };
