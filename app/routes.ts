@@ -20,5 +20,5 @@ export default [
   route("sign-up/*", "routes/auth/sign-up.tsx"),
   route("api/webhook", "routes/api/webhook.ts"),
   route("api/chat", "routes/api/chat.ts"),
-  route("api/thread", "routes/api/thread.ts"),
+  // route("api/thread", "routes/api/thread.ts"),
 ] satisfies RouteConfig;
